@@ -12,7 +12,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const imageBytes = new Uint8Array(await file.arrayBuffer());
-  const base64 = btoa(String.fromCharCode(...imageBytes));
+  
+  // Chunk the conversion to avoid stack overflow on large images
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < imageBytes.length; i += chunkSize) {
+    const chunk = imageBytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  const base64 = btoa(binary);
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${env.GEMINI_API_KEY}`,
