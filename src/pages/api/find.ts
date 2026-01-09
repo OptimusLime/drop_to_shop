@@ -8,7 +8,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const file = form.get('image') as File | null;
 
   if (!file) {
-    return new Response('No image provided', { status: 400 });
+    return Response.json({ error: 'No image provided' }, { status: 400 });
   }
 
   const imageBytes = new Uint8Array(await file.arrayBuffer());
@@ -39,9 +39,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
             },
             {
               text: `Identify the object in the image.
-Search Amazon.com for the most relevant current product.
-Return ONLY a direct Amazon product URL (prefer amazon.com/dp/ASIN format).
-No explanation. No markdown. Just the URL.`
+Search Amazon.com for the 3 most relevant current products.
+Return ONLY a JSON array of 3 objects with "title" (short product name) and "url" (Amazon product URL, prefer amazon.com/dp/ASIN format).
+No explanation. No markdown. Just valid JSON array.
+Example: [{"title":"Product Name","url":"https://amazon.com/dp/B123"}]`
             }
           ]
         }],
@@ -54,26 +55,34 @@ No explanation. No markdown. Just the URL.`
 
   if (!res.ok) {
     const error = await res.text();
-    return new Response(`Gemini API error: ${error}`, { status: 500 });
+    console.error('Gemini API error:', error);
+    return Response.json({ error: `Gemini API error: ${error}` }, { status: 500 });
   }
 
   const json = await res.json();
+  console.log('Gemini raw response:', JSON.stringify(json, null, 2));
   
-  // Extract URL from response
+  // Extract text from response
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
   
   if (!text) {
-    return new Response('No response from Gemini', { status: 500 });
+    console.error('No text in response:', json);
+    return Response.json({ error: 'No response from Gemini' }, { status: 500 });
   }
 
-  // Extract URL if it's wrapped in anything
-  const urlMatch = text.match(/https?:\/\/[^\s<>"]+amazon[^\s<>"]+/i);
-  const url = urlMatch ? urlMatch[0] : text;
+  console.log('Gemini text:', text);
 
-  // Validate it looks like an Amazon URL
-  if (!url.includes('amazon')) {
-    return new Response(`Could not find Amazon URL. Gemini returned: ${text}`, { status: 400 });
+  // Parse JSON from response (strip markdown code blocks if present)
+  let products;
+  try {
+    const jsonStr = text.replace(/```json\n?|\n?```/g, '').trim();
+    products = JSON.parse(jsonStr);
+  } catch (e) {
+    console.error('Failed to parse JSON:', text);
+    return Response.json({ error: 'Failed to parse Gemini response', raw: text }, { status: 500 });
   }
 
-  return Response.redirect(url, 302);
+  console.log('Parsed products:', products);
+
+  return Response.json({ products });
 };

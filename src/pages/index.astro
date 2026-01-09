@@ -23,7 +23,7 @@
         font-size: 1.5rem;
         margin-bottom: 2rem;
       }
-      form {
+      .upload-section {
         display: flex;
         flex-direction: column;
         gap: 1rem;
@@ -61,19 +61,110 @@
       .loading.show {
         display: block;
       }
+      #results {
+        display: none;
+        margin-top: 2rem;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      #results.show {
+        display: flex;
+      }
+      .product-btn {
+        padding: 1rem;
+        font-size: 0.95rem;
+        background: #ff9900;
+        color: #111;
+        font-weight: 600;
+        text-decoration: none;
+        border-radius: 8px;
+        transition: background 0.2s;
+      }
+      .product-btn:hover {
+        background: #e88b00;
+      }
+      .error {
+        color: #c00;
+        margin-top: 1rem;
+        display: none;
+      }
+      .error.show {
+        display: block;
+      }
+      .reset-btn {
+        margin-top: 1rem;
+        background: #666;
+      }
     </style>
   </head>
   <body>
     <h1>Drop to Shop</h1>
-    <form method="POST" action="/api/find" enctype="multipart/form-data" id="form">
-      <input type="file" name="image" accept="image/*" required />
-      <button type="submit">Find on Amazon</button>
-    </form>
+    
+    <div class="upload-section" id="upload-section">
+      <input type="file" name="image" accept="image/*" required id="file-input" />
+      <button type="button" id="search-btn">Find on Amazon</button>
+    </div>
+    
     <p class="loading" id="loading">Searching...</p>
+    <p class="error" id="error"></p>
+    
+    <div id="results"></div>
+    
     <script is:inline>
-      document.getElementById('form').addEventListener('submit', function() {
-        document.getElementById('loading').classList.add('show');
-        this.querySelector('button').disabled = true;
+      const fileInput = document.getElementById('file-input');
+      const searchBtn = document.getElementById('search-btn');
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+      const results = document.getElementById('results');
+      const uploadSection = document.getElementById('upload-section');
+
+      searchBtn.addEventListener('click', async function() {
+        const file = fileInput.files[0];
+        if (!file) {
+          alert('Please select an image');
+          return;
+        }
+
+        // Reset state
+        error.classList.remove('show');
+        results.classList.remove('show');
+        results.innerHTML = '';
+        
+        // Show loading
+        loading.classList.add('show');
+        searchBtn.disabled = true;
+
+        try {
+          const formData = new FormData();
+          formData.append('image', file);
+
+          const res = await fetch('/api/find', {
+            method: 'POST',
+            body: formData
+          });
+
+          const data = await res.json();
+          console.log('API response:', data);
+
+          if (!res.ok || data.error) {
+            throw new Error(data.error || 'Request failed');
+          }
+
+          // Show results
+          results.innerHTML = data.products.map(p => 
+            `<a href="${p.url}" target="_blank" rel="noopener" class="product-btn">${p.title}</a>`
+          ).join('') + '<button class="reset-btn" onclick="location.reload()">Search Again</button>';
+          results.classList.add('show');
+          uploadSection.style.display = 'none';
+
+        } catch (e) {
+          console.error('Error:', e);
+          error.textContent = e.message;
+          error.classList.add('show');
+          searchBtn.disabled = false;
+        } finally {
+          loading.classList.remove('show');
+        }
       });
     </script>
   </body>
