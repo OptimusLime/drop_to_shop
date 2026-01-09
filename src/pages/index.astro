@@ -1,0 +1,80 @@
+---
+
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Drop to Shop</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        max-width: 400px;
+        margin: 4rem auto;
+        padding: 1rem;
+        text-align: center;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin-bottom: 2rem;
+      }
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      input[type="file"] {
+        padding: 1rem;
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      input[type="file"]:hover {
+        border-color: #666;
+      }
+      button {
+        padding: 1rem 2rem;
+        font-size: 1rem;
+        background: #232f3e;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #37475a;
+      }
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .loading {
+        display: none;
+        margin-top: 1rem;
+        color: #666;
+      }
+      .loading.show {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Drop to Shop</h1>
+    <form method="POST" action="/api/find" enctype="multipart/form-data" id="form">
+      <input type="file" name="image" accept="image/*" required />
+      <button type="submit">Find on Amazon</button>
+    </form>
+    <p class="loading" id="loading">Searching...</p>
+    <script is:inline>
+      document.getElementById('form').addEventListener('submit', function() {
+        document.getElementById('loading').classList.add('show');
+        this.querySelector('button').disabled = true;
+      });
+    </script>
+  </body>
+</html>
