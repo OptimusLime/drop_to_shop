@@ -2,136 +2,238 @@
 
 ---
 
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
     <title>Drop to Shop</title>
+    
+    <!-- Pico CSS - minimal, classless CSS framework -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+    
     <style>
-      * {
-        box-sizing: border-box;
+      :root {
+        --pico-font-size: 100%;
       }
+      
       body {
-        font-family: system-ui, -apple-system, sans-serif;
-        max-width: 400px;
-        margin: 4rem auto;
-        padding: 1rem;
-        text-align: center;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
+      
+      main {
+        padding: 2rem;
+        max-width: 420px;
+        width: 100%;
+      }
+      
       h1 {
-        font-size: 1.5rem;
+        text-align: center;
+        margin-bottom: 0.5rem;
+      }
+      
+      .subtitle {
+        text-align: center;
+        color: var(--pico-muted-color);
         margin-bottom: 2rem;
       }
-      .upload-section {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-      }
-      input[type="file"] {
-        padding: 1rem;
-        border: 2px dashed #ccc;
-        border-radius: 8px;
+      
+      .drop-zone {
+        border: 2px dashed var(--pico-muted-border-color);
+        border-radius: var(--pico-border-radius);
+        padding: 2rem;
+        text-align: center;
         cursor: pointer;
+        transition: border-color 0.2s, background-color 0.2s;
+        margin-bottom: 1rem;
       }
-      input[type="file"]:hover {
-        border-color: #666;
+      
+      .drop-zone:hover,
+      .drop-zone.drag-over {
+        border-color: var(--pico-primary);
+        background-color: var(--pico-primary-focus);
       }
-      button {
-        padding: 1rem 2rem;
-        font-size: 1rem;
-        background: #232f3e;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-      }
-      button:hover {
-        background: #37475a;
-      }
-      button:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-      }
-      .loading {
+      
+      .drop-zone input {
         display: none;
-        margin-top: 1rem;
-        color: #666;
       }
-      .loading.show {
+      
+      .drop-zone-text {
+        color: var(--pico-muted-color);
+      }
+      
+      .drop-zone-text strong {
+        color: var(--pico-primary);
+      }
+      
+      .preview {
+        max-width: 100%;
+        max-height: 200px;
+        border-radius: var(--pico-border-radius);
+        display: none;
+        margin: 0 auto 1rem;
+      }
+      
+      .preview.show {
         display: block;
       }
+      
+      #search-btn {
+        width: 100%;
+      }
+      
       #results {
         display: none;
-        margin-top: 2rem;
+      }
+      
+      #results.show {
+        display: block;
+      }
+      
+      .product-name {
+        text-align: center;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: var(--pico-card-background-color);
+        border-radius: var(--pico-border-radius);
+      }
+      
+      .button-group {
+        display: flex;
         flex-direction: column;
         gap: 0.75rem;
       }
-      #results.show {
-        display: flex;
-      }
-      .product-btn {
-        padding: 1rem;
-        font-size: 0.95rem;
-        background: #ff9900;
-        color: #111;
-        font-weight: 600;
+      
+      .button-group a {
+        display: block;
+        text-align: center;
         text-decoration: none;
-        border-radius: 8px;
-        transition: background 0.2s;
       }
-      .product-btn:hover {
-        background: #e88b00;
+      
+      .amazon-app-btn {
+        background: linear-gradient(135deg, #ff9900 0%, #ffad33 100%);
+        color: #111 !important;
+        font-weight: 600;
       }
-      .error {
-        color: #c00;
-        margin-top: 1rem;
+      
+      .amazon-app-btn:hover {
+        background: linear-gradient(135deg, #e88b00 0%, #ff9900 100%);
+      }
+      
+      .amazon-web-btn {
+        background: var(--pico-secondary-background);
+      }
+      
+      #error {
         display: none;
       }
-      .error.show {
+      
+      #error.show {
         display: block;
       }
-      .reset-btn {
-        margin-top: 1rem;
-        background: #666;
+      
+      footer {
+        text-align: center;
+        margin-top: 2rem;
+        font-size: 0.85rem;
+        color: var(--pico-muted-color);
       }
     </style>
   </head>
   <body>
-    <h1>Drop to Shop</h1>
-    
-    <div class="upload-section" id="upload-section">
-      <input type="file" name="image" accept="image/*" required id="file-input" />
-      <button type="button" id="search-btn">Find on Amazon</button>
-    </div>
-    
-    <p class="loading" id="loading">Searching...</p>
-    <p class="error" id="error"></p>
-    
-    <div id="results"></div>
+    <main>
+      <h1>Drop to Shop</h1>
+      <p class="subtitle">Snap a photo, find it on Amazon</p>
+      
+      <div id="upload-section">
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" name="image" accept="image/*" id="file-input" />
+          <p class="drop-zone-text">
+            <strong>Click to upload</strong> or drag and drop<br />
+            <small>PNG, JPG, HEIC up to 10MB</small>
+          </p>
+        </div>
+        
+        <img class="preview" id="preview" alt="Preview" />
+        
+        <button type="button" id="search-btn" disabled>
+          Select an image first
+        </button>
+      </div>
+      
+      <article id="error" role="alert"></article>
+      
+      <div id="results">
+        <p class="product-name" id="product-name"></p>
+        <div class="button-group" id="button-group"></div>
+        <button class="secondary outline" onclick="location.reload()" style="width:100%;margin-top:1rem">
+          Search Again
+        </button>
+      </div>
+      
+      <footer>
+        Powered by Gemini AI
+      </footer>
+    </main>
     
     <script is:inline>
       const fileInput = document.getElementById('file-input');
+      const dropZone = document.getElementById('drop-zone');
+      const preview = document.getElementById('preview');
       const searchBtn = document.getElementById('search-btn');
-      const loading = document.getElementById('loading');
       const error = document.getElementById('error');
       const results = document.getElementById('results');
       const uploadSection = document.getElementById('upload-section');
+      const productName = document.getElementById('product-name');
+      const buttonGroup = document.getElementById('button-group');
+
+      // File selection
+      dropZone.addEventListener('click', () => fileInput.click());
+      
+      fileInput.addEventListener('change', handleFile);
+      
+      // Drag and drop
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+      });
+      
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+      });
+      
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length) {
+          fileInput.files = e.dataTransfer.files;
+          handleFile();
+        }
+      });
+      
+      function handleFile() {
+        const file = fileInput.files[0];
+        if (file) {
+          preview.src = URL.createObjectURL(file);
+          preview.classList.add('show');
+          searchBtn.disabled = false;
+          searchBtn.textContent = 'Find on Amazon';
+          dropZone.style.display = 'none';
+        }
+      }
 
       searchBtn.addEventListener('click', async function() {
         const file = fileInput.files[0];
-        if (!file) {
-          alert('Please select an image');
-          return;
-        }
+        if (!file) return;
 
-        // Reset state
         error.classList.remove('show');
-        results.classList.remove('show');
-        results.innerHTML = '';
-        
-        // Show loading
-        loading.classList.add('show');
+        searchBtn.setAttribute('aria-busy', 'true');
+        searchBtn.textContent = 'Identifying product...';
         searchBtn.disabled = true;
 
         try {
@@ -151,25 +253,15 @@
           }
 
           // Show results
-          let html = '';
-          if (data.product) {
-            html += `<p style="margin-bottom:1rem;font-weight:600">${data.product}</p>`;
-          }
+          productName.textContent = data.product;
           
+          let buttons = '';
           if (data.amazonAppUrl) {
-            // New format with app deep link
-            html += `<a href="${data.amazonAppUrl}" class="product-btn" id="app-link">Open in Amazon App</a>`;
-            html += `<a href="${data.amazonWebUrl}" target="_blank" rel="noopener" class="product-btn" style="background:#232f3e;color:white">Open in Browser</a>`;
-          } else {
-            // Fallback for old format
-            const items = data.products || data.links || [];
-            html += items.map(p => 
-              `<a href="${p.url}" target="_blank" rel="noopener" class="product-btn">${p.title}</a>`
-            ).join('');
+            buttons += `<a href="${data.amazonAppUrl}" class="amazon-app-btn" role="button">Open in Amazon App</a>`;
+            buttons += `<a href="${data.amazonWebUrl}" target="_blank" rel="noopener" class="amazon-web-btn" role="button">Open in Browser</a>`;
           }
+          buttonGroup.innerHTML = buttons;
           
-          html += '<button class="reset-btn" onclick="location.reload()">Search Again</button>';
-          results.innerHTML = html;
           results.classList.add('show');
           uploadSection.style.display = 'none';
           
@@ -182,9 +274,9 @@
           console.error('Error:', e);
           error.textContent = e.message;
           error.classList.add('show');
+          searchBtn.removeAttribute('aria-busy');
+          searchBtn.textContent = 'Find on Amazon';
           searchBtn.disabled = false;
-        } finally {
-          loading.classList.remove('show');
         }
       });
     </script>
