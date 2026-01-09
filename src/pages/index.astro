@@ -151,11 +151,32 @@
           }
 
           // Show results
-          results.innerHTML = data.products.map(p => 
-            `<a href="${p.url}" target="_blank" rel="noopener" class="product-btn">${p.title}</a>`
-          ).join('') + '<button class="reset-btn" onclick="location.reload()">Search Again</button>';
+          let html = '';
+          if (data.product) {
+            html += `<p style="margin-bottom:1rem;font-weight:600">${data.product}</p>`;
+          }
+          
+          if (data.amazonAppUrl) {
+            // New format with app deep link
+            html += `<a href="${data.amazonAppUrl}" class="product-btn" id="app-link">Open in Amazon App</a>`;
+            html += `<a href="${data.amazonWebUrl}" target="_blank" rel="noopener" class="product-btn" style="background:#232f3e;color:white">Open in Browser</a>`;
+          } else {
+            // Fallback for old format
+            const items = data.products || data.links || [];
+            html += items.map(p => 
+              `<a href="${p.url}" target="_blank" rel="noopener" class="product-btn">${p.title}</a>`
+            ).join('');
+          }
+          
+          html += '<button class="reset-btn" onclick="location.reload()">Search Again</button>';
+          results.innerHTML = html;
           results.classList.add('show');
           uploadSection.style.display = 'none';
+          
+          // Auto-open Amazon app on mobile
+          if (data.amazonAppUrl && /iPhone|iPad|Android/i.test(navigator.userAgent)) {
+            window.location.href = data.amazonAppUrl;
+          }
 
         } catch (e) {
           console.error('Error:', e);

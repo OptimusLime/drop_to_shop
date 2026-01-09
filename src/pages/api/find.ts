@@ -22,8 +22,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
   const base64 = btoa(binary);
 
+  // Step 1: Use Gemini to identify the product
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -38,16 +39,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
               }
             },
             {
-              text: `Identify the object in the image.
-Search Amazon.com for the 3 most relevant current products.
-Return ONLY a JSON array of 3 objects with "title" (short product name) and "url" (Amazon product URL, prefer amazon.com/dp/ASIN format).
-No explanation. No markdown. Just valid JSON array.
-Example: [{"title":"Product Name","url":"https://amazon.com/dp/B123"}]`
+              text: `Identify this product. Return ONLY a JSON object with:
+- "name": the product name (brand + product + variant/flavor if visible)
+- "searchQuery": optimized Amazon search query (shorter, key terms only)
+
+Example: {"name":"Culture Pop Strawberry Rhubarb Probiotic Soda","searchQuery":"Culture Pop Strawberry Rhubarb Soda"}
+
+Return ONLY valid JSON, no other text.`
             }
           ]
-        }],
-        tools: [{
-          googleSearch: {}
         }]
       })
     }
@@ -60,29 +60,40 @@ Example: [{"title":"Product Name","url":"https://amazon.com/dp/B123"}]`
   }
 
   const json = await res.json();
-  console.log('Gemini raw response:', JSON.stringify(json, null, 2));
+  console.log('=== GEMINI RESPONSE ===');
+  console.log(JSON.stringify(json, null, 2));
   
-  // Extract text from response
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-  
   if (!text) {
-    console.error('No text in response:', json);
     return Response.json({ error: 'No response from Gemini' }, { status: 500 });
   }
 
-  console.log('Gemini text:', text);
-
-  // Parse JSON from response (strip markdown code blocks if present)
-  let products;
+  let productInfo;
   try {
     const jsonStr = text.replace(/```json\n?|\n?```/g, '').trim();
-    products = JSON.parse(jsonStr);
+    productInfo = JSON.parse(jsonStr);
   } catch (e) {
-    console.error('Failed to parse JSON:', text);
-    return Response.json({ error: 'Failed to parse Gemini response', raw: text }, { status: 500 });
+    console.error('Failed to parse:', text);
+    return Response.json({ error: 'Failed to parse product info', raw: text }, { status: 500 });
   }
 
-  console.log('Parsed products:', products);
+  console.log('=== PRODUCT INFO ===');
+  console.log(productInfo);
 
-  return Response.json({ products });
+  // Step 2: Generate Amazon URLs
+  const searchQuery = encodeURIComponent(productInfo.searchQuery || productInfo.name);
+  
+  // Web URL (fallback)
+  const amazonWebUrl = `https://www.amazon.com/s?k=${searchQuery}`;
+  
+  // Deep link for Amazon app (works on iOS/Android)
+  // Format: com.amazon.mobile.shopping://amazon.com/s?k=query
+  const amazonAppUrl = `com.amazon.mobile.shopping://amazon.com/s?k=${searchQuery}`;
+
+  return Response.json({ 
+    product: productInfo.name,
+    searchQuery: productInfo.searchQuery,
+    amazonAppUrl,
+    amazonWebUrl
+  });
 };
